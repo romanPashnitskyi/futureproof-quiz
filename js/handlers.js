@@ -1,47 +1,80 @@
-import { save, reset, getState } from './state.js';
+import { SCREEN } from './config.js';
+import { updateState, resetState, saveAnswer } from './state.js';
 import { validateEmail, getEmailError } from './validation.js';
-import { get, showScreen, setError, results, resetUI } from './ui.js';
+import { getElements, showScreen, setEmailError, displayResults, resetUI } from './ui.js';
 
-export function onOption(n, btn) {
-    const { opts, nextBtns } = get();
-    opts[n - 1].querySelectorAll('.option-btn').forEach(b => {
-        b.disabled = true;
-        if (b.dataset.correct === 'true') b.classList.add('correct');
+export function handleOptionClick(questionNumber, clickedButton) {
+    const optionsContainer = document.querySelector(`[data-question="${questionNumber}"]`);
+    const nextButton = document.querySelector(`[data-next-btn="${questionNumber}"]`);
+    
+    optionsContainer.querySelectorAll('.option-btn').forEach(button => {
+        button.disabled = true;
+        if (button.dataset.correct === 'true') {
+            button.classList.add('correct');
+        }
     });
-    btn.classList.add('selected', btn.dataset.correct === 'true' ? 'correct' : 'incorrect');
-    nextBtns[n - 1].disabled = false;
-    save({ answers: { ...getState().answers, [n]: btn.dataset.value } });
+    
+    const isCorrectAnswer = clickedButton.dataset.correct === 'true';
+    clickedButton.classList.add('selected');
+    clickedButton.classList.add(isCorrectAnswer ? 'correct' : 'incorrect');
+    
+    nextButton.disabled = false;
+    saveAnswer(questionNumber, clickedButton.dataset.value);
 }
 
-export function onNext(n) {
-    save({ step: n + 1 });
-    showScreen(n + 1);
+export function handleNextClick(currentQuestionNumber) {
+    const nextScreenNumber = currentQuestionNumber + 1;
+    updateState({ currentStep: nextScreenNumber });
+    showScreen(nextScreenNumber);
 }
 
-export function onSubmit(e) {
-    e.preventDefault();
-    const email = get().input.value.trim();
-    const err = getEmailError(email);
-    if (err) { setError(err); get().input.focus(); return; }
-    save({ email, step: 4, done: true });
-    results();
-    showScreen(4);
+export function handleEmailSubmit(event) {
+    event.preventDefault();
+    
+    const elements = getElements();
+    const emailValue = elements.emailInput.value.trim();
+    const validationError = getEmailError(emailValue);
+    
+    if (validationError) {
+        setEmailError(validationError);
+        elements.emailInput.focus();
+        return;
+    }
+    
+    updateState({
+        email: emailValue,
+        currentStep: SCREEN.RESULTS,
+        isCompleted: true
+    });
+    
+    displayResults();
+    showScreen(SCREEN.RESULTS);
 }
 
-export function onInput() {
-    const v = get().input.value.trim();
-    setError(v && !validateEmail(v) ? '' : null);
-    get().input.classList.toggle('valid', v && validateEmail(v));
+export function handleEmailInput() {
+    const elements = getElements();
+    const emailValue = elements.emailInput.value.trim();
+    const isValid = validateEmail(emailValue);
+    
+    setEmailError(emailValue && !isValid ? '' : null);
+    elements.emailInput.classList.toggle('valid', emailValue && isValid);
 }
 
-export function onBlur(e) {
-    if (e.relatedTarget?.classList.contains('submit-btn')) return;
-    const v = get().input.value.trim();
-    if (v && !validateEmail(v)) setError('Введіть коректний email');
+export function handleEmailBlur(event) {
+    if (event.relatedTarget?.classList.contains('submit-btn')) {
+        return;
+    }
+    
+    const elements = getElements();
+    const emailValue = elements.emailInput.value.trim();
+    
+    if (emailValue && !validateEmail(emailValue)) {
+        setEmailError('Введіть коректний email');
+    }
 }
 
-export function onRestart() {
-    reset();
+export function handleRestart() {
+    resetState();
     resetUI();
-    showScreen(1);
+    showScreen(SCREEN.FIRST_QUESTION);
 }

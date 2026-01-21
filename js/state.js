@@ -1,22 +1,45 @@
 import { STORAGE_KEY } from './config.js';
 
-const initial = { step: 1, answers: {}, email: '', done: false };
-let state = { ...initial };
+const INITIAL_STATE = {
+    currentStep: 1,
+    answers: {},
+    email: '',
+    isCompleted: false
+};
 
-export const getState = () => state;
+let currentState = { ...INITIAL_STATE };
 
-export function save(updates) {
-    Object.assign(state, updates);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+export function getState() {
+    return currentState;
 }
 
-export function load() {
-    const s = localStorage.getItem(STORAGE_KEY);
-    if (s) { state = JSON.parse(s); return true; }
+export function updateState(updates) {
+    Object.assign(currentState, updates);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentState));
+}
+
+export function saveAnswer(questionNumber, answerValue) {
+    const updatedAnswers = { ...currentState.answers, [questionNumber]: answerValue };
+    updateState({ answers: updatedAnswers });
+}
+
+export function loadState() {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    
+    if (savedState) {
+        try {
+            currentState = JSON.parse(savedState);
+            return true;
+        } catch (error) {
+            console.error('Failed to parse saved state:', error);
+            return false;
+        }
+    }
+    
     return false;
 }
 
-export function reset() {
+export function resetState() {
     localStorage.removeItem(STORAGE_KEY);
-    state = { ...initial };
+    currentState = { ...INITIAL_STATE };
 }
