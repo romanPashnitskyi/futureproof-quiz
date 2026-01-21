@@ -9,6 +9,14 @@ const INITIAL_STATE = {
 
 let currentState = { ...INITIAL_STATE };
 
+function isValidState(state) {
+    return state 
+        && typeof state.currentStep === 'number'
+        && typeof state.answers === 'object'
+        && typeof state.email === 'string'
+        && typeof state.isCompleted === 'boolean';
+}
+
 export function getState() {
     return currentState;
 }
@@ -28,10 +36,17 @@ export function loadState() {
     
     if (savedState) {
         try {
-            currentState = JSON.parse(savedState);
+            const parsed = JSON.parse(savedState);
+            
+            if (!isValidState(parsed)) {
+                localStorage.removeItem(STORAGE_KEY);
+                return false;
+            }
+            
+            currentState = parsed;
             return true;
-        } catch (error) {
-            console.error('Failed to parse saved state:', error);
+        } catch {
+            localStorage.removeItem(STORAGE_KEY);
             return false;
         }
     }
